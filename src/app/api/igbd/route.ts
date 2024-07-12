@@ -1,0 +1,1 @@
+IGDB_CLient_ID = lia5g1m4l7bv7prlzn5v4g0gn89s0a
