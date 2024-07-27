@@ -1,41 +1,67 @@
-import { NextRequest, NextResponse } from 'next/server';
+// src/app/api/igdb/route.ts
+import { NextResponse } from 'next/server';
 
-export async function POST(req: NextRequest) {
-  try {
-    const clientId = process.env.IGDB_CLIENT_ID;
-    const accessToken = process.env.IGDB_ACCESS_TOKEN;
+export async function POST(request: Request) {
+  const { query } = await request.json();
 
-    if (!clientId || !accessToken) {
-      console.error("Missing IGDB_CLIENT_ID or IGDB_ACCESS_TOKEN");
-      throw new Error("Missing IGDB_CLIENT_ID or IGDB_ACCESS_TOKEN");
-    }
-
-    // ランダムなオフセットを生成
-    const offset = Math.floor(Math.random() * 1000);
-
-    const response = await fetch("https://api.igdb.com/v4/games", {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Client-ID': clientId,
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: `fields name,screenshots.url,first_release_date,involved_companies.company.name; limit 5; offset ${offset};`,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to fetch data from IGDB: ${errorText}`);
-    }
-
-    const data = await response.json();
-    return NextResponse.json(data);
-  } catch (error: unknown) {
-    console.error('Error fetching data from IGDB:', error);
-    if (error instanceof Error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    } else {
-      return NextResponse.json({ error: 'An unknown error occurred' }, { status: 500 });
-    }
+  if (!query) {
+    return NextResponse.json({ error: 'Query parameter is required' }, { status: 400 });
   }
+
+  const headers = {
+    'Client-ID': process.env.IGDB_CLIENT_ID || '',
+    'Authorization': `Bearer ${process.env.IGDB_ACCESS_TOKEN}`,
+    'Content-Type': 'application/json',
+  };
+
+  const body = `fields name, screenshots.url, first_release_date, involved_companies.company.name, genres.name, platforms.name; search "${query}";`;
+
+  const response = await fetch('https://api.igdb.com/v4/games', {
+    method: 'POST',
+    headers: headers,
+    body: body,
+  });
+
+  const data = await response.json();
+
+  console.log('Response data:', JSON.stringify(data, null, 2));
+
+  if (!response.ok) {
+    return NextResponse.json({ error: data.message }, { status: response.status });
+  }
+
+  return NextResponse.json(data);
+}
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+
+  if (!id) {
+    return NextResponse.json({ error: 'ID parameter is required' }, { status: 400 });
+  }
+
+  const headers = {
+    'Client-ID': process.env.IGDB_CLIENT_ID || '',
+    'Authorization': `Bearer ${process.env.IGDB_ACCESS_TOKEN}`,
+    'Content-Type': 'application/json',
+  };
+
+  const body = `fields name, screenshots.url, first_release_date, involved_companies.company.name, genres.name, platforms.name; where id = ${id};`;
+
+  const response = await fetch('https://api.igdb.com/v4/games', {
+    method: 'POST',
+    headers: headers,
+    body: body,
+  });
+
+  const data = await response.json();
+
+  console.log('Response data:', JSON.stringify(data, null, 2));
+
+  if (!response.ok) {
+    return NextResponse.json({ error: data.message }, { status: response.status });
+  }
+
+  return NextResponse.json(data);
 }

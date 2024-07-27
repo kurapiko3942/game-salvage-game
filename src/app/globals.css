@@ -74,3 +74,40 @@
       @apply bg-background text-foreground;
     }
   }
+
+ /* アニメーションのためのクラス */
+@layer utilities {
+  @keyframes move {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(-100%);
+    }
+  }
+
+  .walk-background {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    height: 150px; /* GIFの高さに合わせて調整 */
+    background-color: transparent; /* 必要に応じて背景色を設定 */
+    overflow: hidden;
+    z-index: 10;
+  }
+
+  .walk-path {
+    display: flex;
+    align-items: flex-end;
+    height: 100%;
+    animation: move 10s linear infinite;
+  }
+
+  .walk-animation {
+    width: 150px; /* GIFの幅に合わせて調整 */
+    height: 150px; /* GIFの高さに合わせて調整 */
+    background-image: url('/robot.gif'); /* GIFのパス */
+    background-size: contain;
+    background-repeat: no-repeat;
+  }
+}
