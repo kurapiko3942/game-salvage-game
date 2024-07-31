@@ -9,7 +9,7 @@ const Header = () => {
           <span className="text-2xl font-bold cursor-pointer">MyApp</span>
         </Link>
         <nav className="space-x-4">
-          <Link href="/details" passHref>
+          <Link href="/detail" passHref>
             <span className="hover:text-gray-600 transition cursor-pointer">Details</span>
           </Link>
           <Link href="/about" passHref>
