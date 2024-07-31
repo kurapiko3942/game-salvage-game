@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '../components/ui/card';
 import Image from 'next/image';
 import { Game } from '@/components/type';
@@ -37,17 +36,11 @@ const convertToAbsoluteURL = (url: string): string => {
 };
 
 const HomePage: React.FC = () => {
-  const searchParams = useSearchParams();
-  const query = searchParams.get('query') || 'Mario'; // 初期値を「Mario」に設定
   const [data, setData] = useState<Game[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>(query);
+  const [searchQuery, setSearchQuery] = useState<string>('Mario'); // 初期値を「Mario」に設定
 
-  useEffect(() => {
-    loadGameData(query);
-  }, [query]);
-
-  const loadGameData = async (query: string) => {
+  const loadGameData = useCallback(async (query: string) => {
     try {
       const result = await fetchIGDBData(query);
       const sortedData = result.sort((a, b) => (b.first_release_date || 0) - (a.first_release_date || 0));
@@ -59,7 +52,14 @@ const HomePage: React.FC = () => {
         setError('An unknown error occurred');
       }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const query = urlParams.get('query') || 'Mario';
+    setSearchQuery(query);
+    loadGameData(query);
+  }, [loadGameData]);
 
   const handleSearch = () => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -70,7 +70,7 @@ const HomePage: React.FC = () => {
   };
 
   if (error) return <div className="text-center text-red-600 mt-4">Error: {error}</div>;
-  if (!data.length) return <Loading/>;
+  if (!data.length) return <Loading />;
 
   return (
     <div className="container mx-auto max-w-full bg-black text-white">
