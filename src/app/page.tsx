@@ -2,11 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-
+import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '../components/ui/card';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from '../components/ui/pagination';
 import Image from 'next/image';
 import { Game } from '@/components/type';
+import Header from '@/components/layouts/header';
+import Loading from '@/components/layouts/loading';
 
 const fetchIGDBData = async (query: string): Promise<Game[]> => {
   console.log('Fetching data with query:', query);  // クエリのログ出力
@@ -28,7 +29,7 @@ const fetchIGDBData = async (query: string): Promise<Game[]> => {
 };
 
 // プロトコル相対URLを絶対URLに変換する関数
-const convertToAbsoluteURL = (url: string) => {
+const convertToAbsoluteURL = (url: string): string => {
   if (url.startsWith('//')) {
     return `https:${url}`;
   }
@@ -36,26 +37,21 @@ const convertToAbsoluteURL = (url: string) => {
 };
 
 const HomePage: React.FC = () => {
+  const searchParams = useSearchParams();
+  const query = searchParams.get('query') || 'Mario'; // 初期値を「Mario」に設定
   const [data, setData] = useState<Game[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [filteredData, setFilteredData] = useState<Game[]>([]);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const itemsPerPage = 9;
+  const [searchQuery, setSearchQuery] = useState<string>(query);
+
+  useEffect(() => {
+    loadGameData(query);
+  }, [query]);
 
   const loadGameData = async (query: string) => {
-    if (!query) {
-      query = 'Mario';  // デフォルトのクエリ
-    }
     try {
       const result = await fetchIGDBData(query);
-      
-      // リリース日で降順にソート
       const sortedData = result.sort((a, b) => (b.first_release_date || 0) - (a.first_release_date || 0));
-      
       setData(sortedData);
-      setFilteredData(sortedData);
-      setCurrentPage(1); // 検索時にページをリセット
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
@@ -65,70 +61,28 @@ const HomePage: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    loadGameData('Mario'); // 初期ロード時にデフォルトのクエリを指定
-  }, []);
-
   const handleSearch = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.set('query', searchQuery);
+    const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
+    window.history.pushState({ path: newUrl }, '', newUrl);
     loadGameData(searchQuery);
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
-  // 現在のページに表示するデータを計算
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
-
-  const renderPaginationItems = () => {
-    const paginationItems = [];
-    for (let page = 1; page <= totalPages; page++) {
-      if (
-        page === 1 ||
-        page === totalPages ||
-        (page >= currentPage - 2 && page <= currentPage + 2)
-      ) {
-        paginationItems.push(
-          <PaginationItem key={page}>
-            <PaginationLink
-              isActive={page === currentPage}
-              onClick={() => handlePageChange(page)}
-            >
-              {page}
-            </PaginationLink>
-          </PaginationItem>
-        );
-      } else if (
-        page === currentPage - 3 ||
-        page === currentPage + 3
-      ) {
-        paginationItems.push(
-          <PaginationItem key={`ellipsis-${page}`}>
-            <PaginationEllipsis />
-          </PaginationItem>
-        );
-      }
-    }
-    return paginationItems;
-  };
-
-  if (error) return <div>Error: {error}</div>;
-  if (!data.length) return <div>Loading...</div>;
+  if (error) return <div className="text-center text-red-600 mt-4">Error: {error}</div>;
+  if (!data.length) return <Loading/>;
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto max-w-full bg-black text-white">
+      <Header />
       <div className="flex flex-col items-center mb-4">
-        <p className="mb-2 text-gray-600">Enter the name of a game to search for its details</p>
-        <div className="flex justify-between items-center w-full max-w-lg bg-white bg-opacity-80 rounded-lg p-4 shadow-md">
+        <p className="mb-2 text-gray-400">Enter the name of a game to search for its details</p>
+        <div className="flex justify-between items-center w-full max-w-lg bg-gray-800 rounded-lg p-4 shadow-md">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="px-4 py-2 border rounded-lg shadow-sm w-full"
+            className="px-4 py-2 border rounded-lg shadow-sm w-full bg-black text-white border-gray-600"
             placeholder="Search for games..."
           />
           <button
@@ -140,14 +94,19 @@ const HomePage: React.FC = () => {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {currentItems.map(game => (
-          <Link key={game.id} href={`/games/${game.id}`} passHref>
-            <Card className="max-w-md mx-auto my-4 shadow-lg w-80 h-96 bg-white bg-opacity-80 rounded-lg overflow-hidden cursor-pointer">
+        {data.map(game => (
+          <Link key={game.id} href={`/games/${game.id}?query=${searchQuery}`} passHref>
+            <Card className="max-w-md mx-auto my-4 shadow-lg w-80 h-96 bg-gray-800 rounded-lg overflow-hidden cursor-pointer">
               <CardHeader className="relative h-40">
                 {game.screenshots && game.screenshots.length > 0 ? (
-                  <Image src={convertToAbsoluteURL(game.screenshots[0].url.replace('thumb', '1080p'))} alt={game.name} layout="fill" objectFit="cover" />
+                  <Image 
+                    src={convertToAbsoluteURL(game.screenshots[0].url.replace('thumb', '1080p'))} 
+                    alt={game.name} 
+                    layout="fill" 
+                    objectFit="cover"
+                  />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                  <div className="w-full h-full flex items-center justify-center bg-gray-600">
                     No Image Available
                   </div>
                 )}
@@ -161,7 +120,7 @@ const HomePage: React.FC = () => {
                 )}
                 {game.involved_companies && game.involved_companies.length > 0 && (
                   <CardDescription className="text-gray-400">
-                    Company: {game.involved_companies[0].company.name || 'N/A'}
+                    Company: {game.involved_companies[0].company?.name || 'N/A'}
                   </CardDescription>
                 )}
                 {game.genres && game.genres.length > 0 && (
@@ -179,14 +138,6 @@ const HomePage: React.FC = () => {
           </Link>
         ))}
       </div>
-      {/* Pagination */}
-      <Pagination className="mt-8">
-        <PaginationContent>
-          <PaginationPrevious onClick={() => handlePageChange(Math.max(1, currentPage - 1))} />
-          {renderPaginationItems()}
-          <PaginationNext onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} />
-        </PaginationContent>
-      </Pagination>
     </div>
   );
 };

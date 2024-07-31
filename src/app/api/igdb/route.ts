@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     'Content-Type': 'application/json',
   };
 
-  const body = `fields name, screenshots.url, first_release_date, involved_companies.company.name, genres.name, platforms.name; search "${query}";`;
+  const body = `fields name, screenshots.url, first_release_date, involved_companies.company.name, genres.name, platforms.name, storyline, summary, total_rating, total_rating_count, aggregated_rating, aggregated_rating_count, websites.url, videos.video_id; search "${query}";`;
 
   const response = await fetch('https://api.igdb.com/v4/games', {
     method: 'POST',
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     'Content-Type': 'application/json',
   };
 
-  const body = `fields name, screenshots.url, first_release_date, involved_companies.company.name, genres.name, platforms.name; where id = ${id};`;
+  const body = `fields name, screenshots.url, first_release_date, involved_companies.company.name, genres.name, platforms.name, storyline, summary, total_rating, total_rating_count, aggregated_rating, aggregated_rating_count, websites.url, videos.video_id; where id = ${id};`;
 
   const response = await fetch('https://api.igdb.com/v4/games', {
     method: 'POST',
